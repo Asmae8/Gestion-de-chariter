@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Accueil - Actions de Charite</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --charity-black: #121212;
+            --charity-green: #1f8f4e;
+            --charity-green-dark: #15663a;
+            --charity-white: #ffffff;
+            --charity-line: #d8e6dd;
+            --charity-soft: #f2f7f4;
+        }
+
+        body {
+            background: linear-gradient(180deg, #eef5f0 0%, #ffffff 45%, #ffffff 100%);
+            color: var(--charity-black);
+        }
+
+        .page-shell {
+            max-width: 1200px;
+        }
+
+        .top-header {
+            background: var(--charity-black);
+            color: var(--charity-white);
+            border-radius: 14px;
+        }
+
+        .section-nav {
+            background: var(--charity-white);
+            border: 1px solid var(--charity-line);
+            border-radius: 12px;
+            padding: 10px;
+            position: sticky;
+            top: 12px;
+            z-index: 20;
+        }
+
+        .tab-btn {
+            border: 1px solid #b9d9c6;
+            background: #ecf7f0;
+            color: #145f35;
+            border-radius: 999px;
+            padding: 8px 14px;
+            font-size: .92rem;
+            font-weight: 600;
+        }
+
+        .tab-btn.active {
+            background: var(--charity-green);
+            color: #fff;
+            border-color: var(--charity-green);
+        }
+
+        .panel {
+            background: var(--charity-white);
+            border: 1px solid var(--charity-line);
+            border-radius: 14px;
+            box-shadow: 0 6px 20px rgba(17, 17, 17, 0.06);
+        }
+
+        .panel-head {
+            border-bottom: 1px solid var(--charity-line);
+            padding: 14px 16px;
+            background: var(--charity-soft);
+            border-radius: 14px 14px 0 0;
+        }
+
+        .btn-charity {
+            background: var(--charity-green);
+            border: 1px solid var(--charity-green);
+            color: #fff;
+        }
+
+        .btn-charity:hover {
+            background: var(--charity-green-dark);
+            border-color: var(--charity-green-dark);
+            color: #fff;
+        }
+
+        .btn-charity-outline {
+            background: #fff;
+            border: 1px solid var(--charity-green);
+            color: var(--charity-green-dark);
+        }
+
+        .btn-charity-outline:hover {
+            background: #ecf7f0;
+            color: var(--charity-green-dark);
+        }
+
+        .btn-donate {
+            background: #c72b2b;
+            border: 1px solid #c72b2b;
+            color: #fff;
+        }
+
+        .btn-donate:hover {
+            background: #a61f1f;
+            border-color: #a61f1f;
+            color: #fff;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: #69b787;
+            box-shadow: 0 0 0 .2rem rgba(31, 143, 78, 0.16);
+        }
+
+        .app-section {
+            display: none;
+        }
+
+        .app-section.active {
+            display: block;
+        }
+
+        .metric {
+            display: inline-block;
+            border-radius: 999px;
+            border: 1px solid #cbe5d5;
+            background: #eaf5ee;
+            color: #175d36;
+            padding: 4px 10px;
+            font-size: .78rem;
+            font-weight: 600;
+        }
+
+        .list-empty {
+            border: 1px dashed var(--charity-line);
+            border-radius: 12px;
+            padding: 16px;
+            color: #5b6a61;
+            background: #fafdfa;
+        }
+
+        .action-card {
+            border: 1px solid var(--charity-line);
+            border-radius: 12px;
+            padding: 14px;
+            background: #fff;
+            box-shadow: 0 6px 18px rgba(18, 18, 18, 0.08);
+        }
+
+        .charity-progress {
+            height: 10px;
+            background: #edf4ef;
+            border-radius: 999px;
+        }
+
+        .charity-progress .progress-bar {
+            background: linear-gradient(90deg, #1f8f4e, #49b474);
+            font-size: .72rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<div class="container page-shell py-4 py-md-5">
+    <header class="top-header p-4 p-md-5 mb-3">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <h1 class="display-6 fw-bold mb-0">Plateforme de Gestion des Actions de Charite</h1>
+            <div class="ms-auto d-flex flex-wrap gap-2">
+                <a href="/login" class="btn btn-charity" sec:authorize="!isAuthenticated()">Se connecter</a>
+                <a href="/register" class="btn btn-light" sec:authorize="!isAuthenticated()">S'inscrire</a>
+                <button class="btn btn-outline-light" id="logoutBtn" sec:authorize="isAuthenticated()">Se deconnecter</button>
+            </div>
+        </div>
+        <p class="lead mt-3 mb-0">Bienvenue sur l'application de Gestion des Actions de Charite</p>
+        <div class="alert alert-success mt-3 mb-0 py-2" sec:authorize="isAuthenticated()">
+            Connecte en tant que <strong sec:authentication="name"></strong>.
+        </div>
+    </header>
+
+    <nav class="section-nav mb-3">
+        <div class="d-flex flex-wrap gap-2">
+            <button class="tab-btn active" type="button" data-target="section-org" sec:authorize="isAuthenticated()">Creation d'organisation</button>
+            <button class="tab-btn" type="button" data-target="section-action" sec:authorize="isAuthenticated()">Creation d'action</button>
+            <button class="tab-btn" type="button" data-target="section-organisations">Organisations</button>
+            <button class="tab-btn" type="button" data-target="section-actions">Actions caritatives</button>
+        </div>
+    </nav>
+
+    <div id="appMessage" class="alert d-none"></div>
+
+    <section id="section-org" class="app-section active" sec:authorize="isAuthenticated()">
+        <div class="panel">
+            <div class="panel-head">
+                <h2 class="h5 mb-0">Fonctionnalite: Creation d'organisation</h2>
+            </div>
+            <div class="p-4">
+                <form id="organisationForm" class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label mb-1">Nom</label>
+                        <input class="form-control" name="nom" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label mb-1">Contact principal</label>
+                        <input class="form-control" name="contactPrincipal">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label mb-1">Description</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label mb-1">Adresse legale</label>
+                        <input class="form-control" name="adresseLegale">
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-charity" type="submit">Ajouter l'organisation</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <section id="section-action" class="app-section" sec:authorize="isAuthenticated()">
+        <div class="panel">
+            <div class="panel-head">
+                <h2 class="h5 mb-0">Fonctionnalite: Creation d'action caritative</h2>
+            </div>
+            <div class="p-4">
+                <form id="actionForm" class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label mb-1">Titre</label>
+                        <input class="form-control" name="titre" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label mb-1">Categorie</label>
+                        <select class="form-select" name="categorie" id="categorieSelect" required>
+                            <option value="">Selectionner une categorie</option>
+                            <option value="Education">Education</option>
+                            <option value="Sante">Sante</option>
+                            <option value="Aide alimentaire">Aide alimentaire</option>
+                            <option value="Urgence">Urgence</option>
+                        </select>
+                        <div id="categoryHint" class="form-text">Choisissez une categorie pour voir le type d'image recommande.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label mb-1">Lieu</label>
+                        <input class="form-control" name="lieu">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label mb-1">Organisation</label>
+                        <select class="form-select" id="organisationId" name="organisationId" required>
+                            <option value="">Selectionner une organisation</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label mb-1">Date debut</label>
+                        <input class="form-control" type="date" name="dateDebut" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label mb-1">Date fin</label>
+                        <input class="form-control" type="date" name="dateFin" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label mb-1">Objectif de fonds (MAD)</label>
+                        <input class="form-control" type="number" min="1" step="0.01" name="objectifFonds" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label mb-1">URL image</label>
+                        <input class="form-control" type="url" name="mediaUrl" placeholder="https://exemple.com/image.jpg">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label mb-1">Description</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-charity" type="submit">Ajouter l'action</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <section id="section-organisations" class="app-section">
+        <div class="panel">
+            <div class="panel-head">
+                <h2 class="h5 mb-0">Liste des organisations</h2>
+            </div>
+            <div class="p-4">
+                <div id="organisationsList" class="list-group list-group-flush"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="section-actions" class="app-section">
+        <div class="panel">
+            <div class="panel-head">
+                <h2 class="h5 mb-0">Liste des actions caritatives</h2>
+            </div>
+            <div class="p-4">
+                <div id="actionsList" class="d-grid gap-2"></div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script th:inline="javascript">
+const IS_AUTHENTICATED = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
+const appMessage = document.getElementById('appMessage');
+const organisationsList = document.getElementById('organisationsList');
+const actionsList = document.getElementById('actionsList');
+const organisationSelect = document.getElementById('organisationId');
+const categorieSelect = document.getElementById('categorieSelect');
+const categoryHint = document.getElementById('categoryHint');
+const organisationForm = document.getElementById('organisationForm');
+const actionForm = document.getElementById('actionForm');
+const tabButtons = Array.from(document.querySelectorAll('.tab-btn'));
+
+function activateSection(sectionId) {
+    document.querySelectorAll('.app-section').forEach(section => {
+        section.classList.toggle('active', section.id === sectionId);
+    });
+    tabButtons.forEach(button => {
+        button.classList.toggle('active', button.dataset.target === sectionId);
+    });
+}
+
+tabButtons.forEach(button => {
+    button.addEventListener('click', () => activateSection(button.dataset.target));
+});
+
+function updateCategoryHint() {
+    if (!categorieSelect || !categoryHint) {
+        return;
+    }
+    const hints = {
+        'Education': "Image recommandee: enfants, ecole, fournitures.",
+        'Sante': "Image recommandee: soins, clinique, medicaments.",
+        'Aide alimentaire': "Image recommandee: paniers, repas, distribution.",
+        'Urgence': "Image recommandee: intervention rapide, secours, situations d'urgence."
+    };
+    categoryHint.textContent = hints[categorieSelect.value] || "Choisissez une categorie pour voir le type d'image recommande.";
+}
+
+categorieSelect?.addEventListener('change', updateCategoryHint);
+
+function showMessage(type, text) {
+    appMessage.className = `alert alert-${type}`;
+    appMessage.textContent = text;
+}
+
+function asCurrency(amount) {
+    const value = Number(amount || 0);
+    return `${value.toLocaleString('fr-FR')} MAD`;
+}
+
+function progressPercent(current, target) {
+    const currentAmount = Number(current || 0);
+    const targetAmount = Number(target || 0);
+    if (targetAmount <= 0) {
+        return 0;
+    }
+    return Math.min(100, Math.max(0, Math.round((currentAmount / targetAmount) * 100)));
+}
+
+function renderDashboard(data) {
+    const organisations = data.organisations || [];
+    const actions = data.actions || [];
+    const canApproveOrganisations = Boolean(data.canApproveOrganisations);
+
+    if (organisationSelect) {
+        organisationSelect.innerHTML = '<option value="">Selectionner une organisation</option>';
+        organisations.forEach(org => {
+            const option = document.createElement('option');
+            option.value = org.id;
+            option.textContent = `${org.nom}${org.validated ? '' : ' (en attente)'}`;
+            organisationSelect.appendChild(option);
+        });
+    }
+
+    organisationsList.innerHTML = organisations.length
+        ? organisations.map(org => `
+            <div class="list-group-item px-0">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                        <div class="fw-semibold">${org.nom}</div>
+                        <div class="small text-muted">${org.description || 'Sans description'}</div>
+                        <div class="small">${org.contactPrincipal || 'Contact non renseigne'}</div>
+                    </div>
+                    <div class="d-flex flex-column align-items-end gap-2">
+                        <span class="metric">${org.validated ? 'Validee' : 'En attente'}</span>
+                        ${canApproveOrganisations && org.canBeApproved ? `
+                            <button class="btn btn-charity btn-sm" onclick="approveOrganisation(${org.id})">Valider</button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('')
+        : '<div class="list-empty">Aucune organisation disponible.</div>';
+
+    actionsList.innerHTML = actions.length
+        ? actions.map(action => `
+            <article class="action-card">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                        <h3 class="h6 mb-1">${action.titre}</h3>
+                        <div class="small text-muted">${action.organisationNom} | ${action.categorie || 'Sans categorie'} | ${action.lieu || 'Sans lieu'}</div>
+                        <p class="small mb-2 mt-1">${action.description || ''}</p>
+                    </div>
+                    <span class="metric">${progressPercent(action.sommeActuelle, action.objectifFonds)}%</span>
+                </div>
+                ${action.mediaUrl ? `<img src="${action.mediaUrl}" alt="Image action ${action.titre}" class="img-fluid rounded mb-2" style="max-height:220px;object-fit:cover;width:100%;">` : ''}
+                <div class="small fw-semibold mb-1">Collecte: ${asCurrency(action.sommeActuelle)} / ${asCurrency(action.objectifFonds)}</div>
+                <div class="progress charity-progress mb-2">
+                    <div class="progress-bar" role="progressbar" style="width:${progressPercent(action.sommeActuelle, action.objectifFonds)}%" aria-valuemin="0" aria-valuemax="100">${progressPercent(action.sommeActuelle, action.objectifFonds)}%</div>
+                </div>
+                <div class="small mb-2">Participants: ${action.participants} | Dons: ${action.dons}</div>
+                <div class="small mb-2">Du ${action.dateDebut || '-'} au ${action.dateFin || '-'}</div>
+                ${IS_AUTHENTICATED ? `
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-charity-outline btn-sm" onclick="participate(${action.id})">Participer</button>
+                        <input type="number" min="1" step="0.01" id="don-${action.id}" class="form-control form-control-sm" style="max-width:160px" placeholder="Montant (MAD)">
+                        <button class="btn btn-donate btn-sm" onclick="donate(${action.id})">Donner</button>
+                    </div>
+                ` : ''}
+            </article>
+        `).join('')
+        : '<div class="list-empty">Aucune action caritative disponible.</div>';
+}
+
+async function fetchDashboard() {
+    const response = await fetch('/api/app/dashboard', { credentials: 'same-origin' });
+    if (!response.ok) {
+        showMessage('danger', 'Erreur de chargement du dashboard.');
+        return;
+    }
+    const data = await response.json();
+    renderDashboard(data);
+}
+
+async function postJson(url, payload) {
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+        return null;
+    }
+
+    let message = 'Operation impossible.';
+    try {
+        const errorJson = await response.json();
+        message = errorJson.error || message;
+    } catch (_) {
+        const text = await response.text();
+        if (text) {
+            message = text;
+        }
+    }
+    throw new Error(message);
+}
+
+organisationForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const formData = new FormData(organisationForm);
+    const payload = Object.fromEntries(formData.entries());
+
+    try {
+        await postJson('/api/app/organisations', payload);
+        showMessage('success', 'Organisation creee avec succes.');
+        organisationForm.reset();
+        await fetchDashboard();
+        activateSection('section-organisations');
+    } catch (error) {
+        showMessage('danger', error.message);
+    }
+});
+
+actionForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const formData = new FormData(actionForm);
+    const payload = Object.fromEntries(formData.entries());
+
+    try {
+        await postJson('/api/app/actions', payload);
+        showMessage('success', 'Action caritative creee avec succes.');
+        actionForm.reset();
+        await fetchDashboard();
+        activateSection('section-actions');
+    } catch (error) {
+        showMessage('danger', error.message);
+    }
+});
+
+async function participate(actionId) {
+    try {
+        await postJson(`/api/app/actions/${actionId}/participate`, {});
+        showMessage('success', 'Participation enregistree.');
+        await fetchDashboard();
+    } catch (error) {
+        showMessage('danger', error.message);
+    }
+}
+
+async function donate(actionId) {
+    const amountField = document.getElementById(`don-${actionId}`);
+    const montant = Number(amountField?.value || 0);
+    if (!montant || montant <= 0) {
+        showMessage('danger', 'Entrez un montant valide.');
+        return;
+    }
+
+    try {
+        await postJson(`/api/app/actions/${actionId}/donate`, {
+            montant,
+            paymentMethod: 'CARTE'
+        });
+        showMessage('success', 'Don enregistre.');
+        amountField.value = '';
+        await fetchDashboard();
+    } catch (error) {
+        showMessage('danger', error.message);
+    }
+}
+
+async function approveOrganisation(organisationId) {
+    try {
+        await postJson(`/api/app/organisations/${organisationId}/approve`, {});
+        showMessage('success', 'Organisation validee avec succes.');
+        await fetchDashboard();
+        activateSection('section-organisations');
+    } catch (error) {
+        showMessage('danger', error.message);
+    }
+}
+
+document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+    window.location.href = '/login?logout';
+});
+
+updateCategoryHint();
+fetchDashboard();
+</script>
+</body>
+</html>
