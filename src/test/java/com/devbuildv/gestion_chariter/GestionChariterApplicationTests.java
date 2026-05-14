@@ -99,7 +99,7 @@ class GestionChariterApplicationTests {
 		MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
-								{"email":"admin@charity.com","password":"admin123"}
+								{"email":"user@charity.com","password":"user1234"}
 								"""))
 				.andExpect(status().isOk())
 				.andReturn();
@@ -171,5 +171,89 @@ class GestionChariterApplicationTests {
 						.cookie(new jakarta.servlet.http.Cookie("auth_token", authCookie)))
 				.andExpect(status().isBadRequest())
 				.andExpect(content().string(containsString("super administrateur")));
+	}
+
+	@Test
+	void simpleUserCannotCreateOrganisationOrAction() throws Exception {
+		MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"email":"user@charity.com","password":"user1234"}
+								"""))
+				.andExpect(status().isOk())
+				.andReturn();
+
+		String authCookie = loginResult.getResponse().getCookie("auth_token").getValue();
+
+		mockMvc.perform(post("/api/app/organisations")
+						.cookie(new jakarta.servlet.http.Cookie("auth_token", authCookie))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"nom":"Association Refusee","description":"Test","contactPrincipal":"refusee@test.org","adresseLegale":"Casablanca"}
+								"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(content().string(containsString("administrateur d'organisation")));
+
+		Organisation organisation = organisationRepository.findAll().stream()
+				.filter(Organisation::isValidated)
+				.findFirst()
+				.orElseThrow();
+
+		mockMvc.perform(post("/api/app/actions")
+						.cookie(new jakarta.servlet.http.Cookie("auth_token", authCookie))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(String.format("""
+								{"titre":"Action refusee","description":"Test","categorie":"Education","dateDebut":"%s","dateFin":"%s","lieu":"Casablanca","objectifFonds":1000,"organisationId":%d}
+								""", LocalDate.now(), LocalDate.now().plusDays(5), organisation.getId())))
+				.andExpect(status().isBadRequest())
+				.andExpect(content().string(containsString("administrateur d'organisation")));
+	}
+
+	@Test
+	void orgAdminCanCreateAnotherOrganisation() throws Exception {
+		MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"email":"org@charity.com","password":"org12345"}
+								"""))
+				.andExpect(status().isOk())
+				.andReturn();
+
+		String authCookie = loginResult.getResponse().getCookie("auth_token").getValue();
+
+		mockMvc.perform(post("/api/app/organisations")
+						.cookie(new jakarta.servlet.http.Cookie("auth_token", authCookie))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"nom":"Association Deuxieme Org Admin","description":"Deuxieme organisation test","contactPrincipal":"org2@test.org","adresseLegale":"Casablanca"}
+								"""))
+				.andExpect(status().isCreated())
+				.andExpect(content().string(containsString("Association Deuxieme Org Admin")));
+	}
+
+	@Test
+	void orgAdminCannotDonate() throws Exception {
+		ActionCharite action = actionChariteRepository.findAll().stream()
+				.findFirst()
+				.orElseThrow();
+
+		MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"email":"org@charity.com","password":"org12345"}
+								"""))
+				.andExpect(status().isOk())
+				.andReturn();
+
+		String authCookie = loginResult.getResponse().getCookie("auth_token").getValue();
+
+		mockMvc.perform(post("/api/app/actions/" + action.getId() + "/donate")
+						.contentType(MediaType.APPLICATION_JSON)
+						.cookie(new jakarta.servlet.http.Cookie("auth_token", authCookie))
+						.content("""
+								{"montant":100,"paymentMethod":"CARTE"}
+								"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(content().string(containsString("utilisateur simple")));
 	}
 }

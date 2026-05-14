@@ -24,7 +24,7 @@ public class Organisation {
 
     private boolean validated = false;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "admin_user_id")
     private User admin;
 

@@ -157,6 +157,10 @@
             font-size: .72rem;
             font-weight: 600;
         }
+
+        .role-hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -172,22 +176,24 @@
         </div>
         <p class="lead mt-3 mb-0">Bienvenue sur l'application de Gestion des Actions de Charite</p>
         <div class="alert alert-success mt-3 mb-0 py-2" sec:authorize="isAuthenticated()">
-            Connecte en tant que <strong sec:authentication="name"></strong>.
+            Connecte en tant que <strong sec:authentication="name"></strong>
+            <span id="roleBadge" class="badge text-bg-light ms-2"></span>.
         </div>
     </header>
 
     <nav class="section-nav mb-3">
         <div class="d-flex flex-wrap gap-2">
-            <button class="tab-btn active" type="button" data-target="section-org" sec:authorize="isAuthenticated()">Creation d'organisation</button>
-            <button class="tab-btn" type="button" data-target="section-action" sec:authorize="isAuthenticated()">Creation d'action</button>
-            <button class="tab-btn" type="button" data-target="section-organisations">Organisations</button>
+            <button class="tab-btn" type="button" data-target="section-org" data-permission="canCreateOrganisation" sec:authorize="isAuthenticated()">Creation d'organisation</button>
+            <button class="tab-btn" type="button" data-target="section-action" data-permission="canCreateAction" sec:authorize="isAuthenticated()">Creation d'action</button>
+            <button class="tab-btn" type="button" data-target="section-validation" data-permission="canApproveOrganisations" sec:authorize="isAuthenticated()">Validation organisations</button>
+            <button class="tab-btn active" type="button" data-target="section-organisations">Organisations</button>
             <button class="tab-btn" type="button" data-target="section-actions">Actions caritatives</button>
         </div>
     </nav>
 
     <div id="appMessage" class="alert d-none"></div>
 
-    <section id="section-org" class="app-section active" sec:authorize="isAuthenticated()">
+    <section id="section-org" class="app-section" data-permission="canCreateOrganisation" sec:authorize="isAuthenticated()">
         <div class="panel">
             <div class="panel-head">
                 <h2 class="h5 mb-0">Fonctionnalite: Creation d'organisation</h2>
@@ -218,7 +224,7 @@
         </div>
     </section>
 
-    <section id="section-action" class="app-section" sec:authorize="isAuthenticated()">
+    <section id="section-action" class="app-section" data-permission="canCreateAction" sec:authorize="isAuthenticated()">
         <div class="panel">
             <div class="panel-head">
                 <h2 class="h5 mb-0">Fonctionnalite: Creation d'action caritative</h2>
@@ -262,10 +268,6 @@
                         <label class="form-label mb-1">Objectif de fonds (MAD)</label>
                         <input class="form-control" type="number" min="1" step="0.01" name="objectifFonds" required>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label mb-1">URL image</label>
-                        <input class="form-control" type="url" name="mediaUrl" placeholder="https://exemple.com/image.jpg">
-                    </div>
                     <div class="col-12">
                         <label class="form-label mb-1">Description</label>
                         <textarea class="form-control" name="description" rows="3"></textarea>
@@ -278,13 +280,24 @@
         </div>
     </section>
 
-    <section id="section-organisations" class="app-section">
+    <section id="section-organisations" class="app-section active">
         <div class="panel">
             <div class="panel-head">
                 <h2 class="h5 mb-0">Liste des organisations</h2>
             </div>
             <div class="p-4">
                 <div id="organisationsList" class="list-group list-group-flush"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="section-validation" class="app-section" data-permission="canApproveOrganisations" sec:authorize="isAuthenticated()">
+        <div class="panel">
+            <div class="panel-head">
+                <h2 class="h5 mb-0">Validation des organisations</h2>
+            </div>
+            <div class="p-4">
+                <div id="pendingOrganisationsList" class="list-group list-group-flush"></div>
             </div>
         </div>
     </section>
@@ -304,7 +317,9 @@
 <script th:inline="javascript">
 const IS_AUTHENTICATED = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
 const appMessage = document.getElementById('appMessage');
+const roleBadge = document.getElementById('roleBadge');
 const organisationsList = document.getElementById('organisationsList');
+const pendingOrganisationsList = document.getElementById('pendingOrganisationsList');
 const actionsList = document.getElementById('actionsList');
 const organisationSelect = document.getElementById('organisationId');
 const categorieSelect = document.getElementById('categorieSelect');
@@ -312,6 +327,13 @@ const categoryHint = document.getElementById('categoryHint');
 const organisationForm = document.getElementById('organisationForm');
 const actionForm = document.getElementById('actionForm');
 const tabButtons = Array.from(document.querySelectorAll('.tab-btn'));
+let currentPermissions = {
+    role: 'ANONYMOUS',
+    canCreateOrganisation: false,
+    canCreateAction: false,
+    canApproveOrganisations: false,
+    canContribute: false
+};
 
 function activateSection(sectionId) {
     document.querySelectorAll('.app-section').forEach(section => {
@@ -363,14 +385,41 @@ function progressPercent(current, target) {
 function renderDashboard(data) {
     const organisations = data.organisations || [];
     const actions = data.actions || [];
-    const canApproveOrganisations = Boolean(data.canApproveOrganisations);
+    currentPermissions = {
+        role: data.role || 'ANONYMOUS',
+        canCreateOrganisation: Boolean(data.canCreateOrganisation),
+        canCreateAction: Boolean(data.canCreateAction),
+        canApproveOrganisations: Boolean(data.canApproveOrganisations),
+        canContribute: Boolean(data.canContribute)
+    };
+    const canApproveOrganisations = currentPermissions.canApproveOrganisations;
+
+    if (roleBadge) {
+        const roleLabels = {
+            SUPER_ADMIN: 'Super administrateur',
+            ORG_ADMIN: 'Administrateur organisation',
+            USER: 'Utilisateur',
+            ANONYMOUS: 'Invite'
+        };
+        roleBadge.textContent = roleLabels[currentPermissions.role] || currentPermissions.role;
+    }
+
+    document.querySelectorAll('[data-permission]').forEach(element => {
+        const permission = element.dataset.permission;
+        element.classList.toggle('role-hidden', !currentPermissions[permission]);
+    });
+
+    const activeSection = document.querySelector('.app-section.active');
+    if (activeSection?.classList.contains('role-hidden')) {
+        activateSection('section-organisations');
+    }
 
     if (organisationSelect) {
         organisationSelect.innerHTML = '<option value="">Selectionner une organisation</option>';
-        organisations.forEach(org => {
+        organisations.filter(org => org.validated && org.canManage).forEach(org => {
             const option = document.createElement('option');
             option.value = org.id;
-            option.textContent = `${org.nom}${org.validated ? '' : ' (en attente)'}`;
+            option.textContent = org.nom;
             organisationSelect.appendChild(option);
         });
     }
@@ -395,6 +444,27 @@ function renderDashboard(data) {
         `).join('')
         : '<div class="list-empty">Aucune organisation disponible.</div>';
 
+    if (pendingOrganisationsList) {
+        const pendingOrganisations = organisations.filter(org => !org.validated);
+        pendingOrganisationsList.innerHTML = pendingOrganisations.length
+            ? pendingOrganisations.map(org => `
+                <div class="list-group-item px-0">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div>
+                            <div class="fw-semibold">${org.nom}</div>
+                            <div class="small text-muted">${org.description || 'Sans description'}</div>
+                            <div class="small">${org.contactPrincipal || 'Contact non renseigne'}</div>
+                        </div>
+                        <div class="d-flex flex-column align-items-end gap-2">
+                            <span class="metric">En attente</span>
+                            <button class="btn btn-charity btn-sm approve-organisation-btn" type="button" data-organisation-id="${org.id}">Valider</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('')
+            : '<div class="list-empty">Aucune organisation en attente de validation.</div>';
+    }
+
     actionsList.innerHTML = actions.length
         ? actions.map(action => `
             <article class="action-card">
@@ -413,7 +483,7 @@ function renderDashboard(data) {
                 </div>
                 <div class="small mb-2">Participants: ${action.participants} | Dons: ${action.dons}</div>
                 <div class="small mb-2">Du ${action.dateDebut || '-'} au ${action.dateFin || '-'}</div>
-                ${IS_AUTHENTICATED ? `
+                ${currentPermissions.canContribute ? `
                     <div class="d-flex flex-wrap gap-2">
                         <button class="btn btn-charity-outline btn-sm" onclick="participate(${action.id})">Participer</button>
                         <input type="number" min="1" step="0.01" id="don-${action.id}" class="form-control form-control-sm" style="max-width:160px" placeholder="Montant (MAD)">
@@ -533,6 +603,16 @@ async function approveOrganisation(organisationId) {
         showMessage('danger', error.message);
     }
 }
+
+pendingOrganisationsList?.addEventListener('click', async event => {
+    const button = event.target.closest('.approve-organisation-btn');
+    if (!button) {
+        return;
+    }
+    button.disabled = true;
+    await approveOrganisation(button.dataset.organisationId);
+    button.disabled = false;
+});
 
 document.getElementById('logoutBtn')?.addEventListener('click', async () => {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });

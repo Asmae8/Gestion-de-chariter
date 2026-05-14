@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 import static com.devbuildv.gestion_chariter.security.JwtAuthenticationFilter.AUTH_COOKIE;
 
 @RestController
-@RequestMapping("/api/auth")
 public class ApiAuthController {
 
     private final AuthService authService;
@@ -35,27 +34,27 @@ public class ApiAuthController {
         this.secureCookie = secureCookie;
     }
 
-    @PostMapping("/login")
+    @PostMapping({"/api/auth/login", "/api/login"})
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request, HttpServletResponse response) {
         AuthResponse authResponse = authService.login(request);
         attachJwtCookie(response, authResponse.token(), false);
         return ResponseEntity.ok(authResponse);
     }
 
-    @PostMapping("/register")
+    @PostMapping({"/api/auth/register", "/api/register"})
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request, HttpServletResponse response) {
         AuthResponse authResponse = authService.register(request);
         attachJwtCookie(response, authResponse.token(), false);
         return ResponseEntity.ok(authResponse);
     }
 
-    @PostMapping("/logout")
+    @PostMapping({"/api/auth/logout", "/api/logout"})
     public ResponseEntity<Void> logout(HttpServletResponse response) {
         attachJwtCookie(response, "", true);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/me")
+    @GetMapping({"/api/auth/me", "/api/me"})
     public ResponseEntity<String> me(Authentication authentication) {
         return ResponseEntity.ok(authentication.getName());
     }

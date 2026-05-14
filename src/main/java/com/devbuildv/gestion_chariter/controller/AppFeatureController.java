@@ -62,7 +62,11 @@ public class AppFeatureController {
     @GetMapping("/dashboard")
     public DashboardResponse dashboard(Authentication authentication) {
         User currentUser = getCurrentUserOrNull(authentication);
-        boolean canApproveOrganisations = currentUser != null && currentUser.getRole() == Role.SUPER_ADMIN;
+        Role currentRole = currentUser != null ? currentUser.getRole() : null;
+        boolean canApproveOrganisations = currentRole == Role.SUPER_ADMIN;
+        boolean canCreateOrganisation = currentRole == Role.ORG_ADMIN || currentRole == Role.SUPER_ADMIN;
+        boolean canCreateAction = currentRole == Role.ORG_ADMIN || currentRole == Role.SUPER_ADMIN;
+        boolean canContribute = currentRole == Role.USER;
 
         List<OrganisationItem> organisations = organisationRepository.findAll().stream()
                 .map(org -> new OrganisationItem(
@@ -71,7 +75,12 @@ public class AppFeatureController {
                         org.getDescription(),
                         org.getContactPrincipal(),
                         org.isValidated(),
-                        canApproveOrganisations && !org.isValidated()
+                        canApproveOrganisations && !org.isValidated(),
+                        canApproveOrganisations || (
+                                currentUser != null
+                                        && org.getAdmin() != null
+                                        && org.getAdmin().getId().equals(currentUser.getId())
+                        )
                 ))
                 .toList();
 
@@ -93,7 +102,15 @@ public class AppFeatureController {
                 ))
                 .toList();
 
-        return new DashboardResponse(organisations, actions, canApproveOrganisations);
+        return new DashboardResponse(
+                organisations,
+                actions,
+                currentRole != null ? currentRole.name() : "ANONYMOUS",
+                canApproveOrganisations,
+                canCreateOrganisation,
+                canCreateAction,
+                canContribute
+        );
     }
 
     @PostMapping("/organisations")
@@ -102,11 +119,11 @@ public class AppFeatureController {
             Authentication authentication
     ) {
         User currentUser = getCurrentUser(authentication);
+        if (currentUser.getRole() != Role.ORG_ADMIN && currentUser.getRole() != Role.SUPER_ADMIN) {
+            throw new IllegalArgumentException("Seul un administrateur d'organisation peut creer une organisation.");
+        }
         if (organisationRepository.existsByNom(request.nom().trim())) {
             throw new IllegalArgumentException("Une organisation avec ce nom existe deja.");
-        }
-        if (organisationRepository.findByAdmin(currentUser).isPresent()) {
-            throw new IllegalArgumentException("Cet utilisateur gere deja une organisation.");
         }
 
         Organisation organisation = new Organisation();
@@ -126,7 +143,8 @@ public class AppFeatureController {
                 saved.getDescription(),
                 saved.getContactPrincipal(),
                 saved.isValidated(),
-                false
+                false,
+                true
         ));
     }
 
@@ -136,6 +154,9 @@ public class AppFeatureController {
             Authentication authentication
     ) {
         User currentUser = getCurrentUser(authentication);
+        if (currentUser.getRole() != Role.ORG_ADMIN && currentUser.getRole() != Role.SUPER_ADMIN) {
+            throw new IllegalArgumentException("Seul un administrateur d'organisation peut creer une action.");
+        }
         Organisation organisation = organisationRepository.findById(request.organisationId())
                 .orElseThrow(() -> new IllegalArgumentException("Organisation introuvable."));
 
@@ -209,6 +230,9 @@ public class AppFeatureController {
             Authentication authentication
     ) {
         User currentUser = getCurrentUser(authentication);
+        if (currentUser.getRole() != Role.USER) {
+            throw new IllegalArgumentException("Seul un utilisateur simple peut participer a une action.");
+        }
         ActionCharite action = actionRepository.findById(actionId)
                 .orElseThrow(() -> new IllegalArgumentException("Action introuvable."));
         ensureActionAvailable(action);
@@ -229,6 +253,9 @@ public class AppFeatureController {
             Authentication authentication
     ) {
         User currentUser = getCurrentUser(authentication);
+        if (currentUser.getRole() != Role.USER) {
+            throw new IllegalArgumentException("Seul un utilisateur simple peut faire un don.");
+        }
         ActionCharite action = actionRepository.findById(actionId)
                 .orElseThrow(() -> new IllegalArgumentException("Action introuvable."));
         ensureActionAvailable(action);
@@ -340,7 +367,8 @@ public class AppFeatureController {
             String description,
             String contactPrincipal,
             boolean validated,
-            boolean canBeApproved
+            boolean canBeApproved,
+            boolean canManage
     ) {
     }
 
@@ -364,7 +392,11 @@ public class AppFeatureController {
     public record DashboardResponse(
             List<OrganisationItem> organisations,
             List<ActionItem> actions,
-            boolean canApproveOrganisations
+            String role,
+            boolean canApproveOrganisations,
+            boolean canCreateOrganisation,
+            boolean canCreateAction,
+            boolean canContribute
     ) {
     }
 }

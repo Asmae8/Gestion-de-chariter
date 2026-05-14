@@ -39,11 +39,11 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/home", "/register", "/login", "/h2-console/**").permitAll()
-                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/login", "/api/register").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/app/dashboard").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/app/**").authenticated()
                         .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/logout", "/api/logout").authenticated()
                         .requestMatchers("/admin/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/org/**", "/organisation/**").hasRole("ORG_ADMIN")
                         .requestMatchers("/profile/**", "/don/**", "/participation/**").authenticated()

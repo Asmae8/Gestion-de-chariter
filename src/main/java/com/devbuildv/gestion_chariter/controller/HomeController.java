@@ -117,6 +117,13 @@ public class HomeController implements CommandLineRunner {
                 action.setArchived(false);
                 action.setCreatedAt(LocalDateTime.now());
                 actionChariteRepository.save(action);
+
+                Organisation pendingOrganisation = new Organisation();
+                pendingOrganisation.setNom("Association Solidarite En Attente");
+                pendingOrganisation.setDescription("Organisation exemple creee pour tester la validation par le super administrateur.");
+                pendingOrganisation.setContactPrincipal("validation@solidarite.org");
+                pendingOrganisation.setValidated(false);
+                organisationRepository.save(pendingOrganisation);
             }
         }
     }
