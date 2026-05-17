@@ -35,30 +35,5 @@ Ce projet permet de gerer des organisations caritatives, leurs actions humanitai
 - MySQL ou PostgreSQL possibles via profils de configuration
 - Maven
 
-## Comptes de demonstration
 
-Les comptes suivants sont crees automatiquement en profil local lorsque `app.seed-demo-data=true`.
 
-```text
-SUPER_ADMIN : admin@charity.com / admin123
-ORG_ADMIN   : org@charity.com / org12345
-USER        : user@charity.com / user1234
-```
-
-## Lancement local
-
-```bash
-./mvnw spring-boot:run
-```
-
-Sous Windows :
-
-```powershell
-.\mvnw.cmd spring-boot:run
-```
-
-L'application est accessible par defaut sur :
-
-```text
-http://localhost:8081
-```
